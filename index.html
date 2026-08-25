@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SAGE TERMINAL // WEIZENBAUM INTRO</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #071a07;
+    font-family: 'VT323', 'Courier New', monospace;
+    color: #33ff66;
+    overflow: hidden;
+  }
+
+  .crt {
+    position: relative;
+    height: 100vh;
+    padding: 40px 24px;
+    box-sizing: border-box;
+    text-shadow: 0 0 4px #33ff66, 0 0 10px rgba(51,255,102,0.4);
+    font-size: 22px;
+    line-height: 1.5;
+    overflow-y: auto;
+  }
+
+  .screen {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .crt::before {
+    content: "";
+    position: fixed; top:0; left:0; right:0; bottom:0;
+    background: repeating-linear-gradient(
+      rgba(0,0,0,0) 0px, rgba(0,0,0,0) 1px,
+      rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 3px
+    );
+    pointer-events: none;
+    animation: flicker 6s infinite;
+  }
+
+  .crt::after {
+    content: "";
+    position: fixed; top:0; left:0; right:0; bottom:0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 60%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+  }
+
+  @keyframes flicker {
+    0%, 96%, 100% { opacity: 1; }
+    97% { opacity: 0.85; }
+    98% { opacity: 1; }
+  }
+
+  #log { white-space: pre-wrap; }
+  .prompt { color: #7bffa0; }
+  .heading { color: #7bffa0; }
+  .dim { color: #1f8a3d; font-size: 16px; }
+
+  #inputLine { display: none; align-items: center; }
+  #inputLine .label { color: #7bffa0; margin-right: 8px; }
+  input.term {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #33ff66;
+    font-family: 'VT323', 'Courier New', monospace;
+    font-size: 22px;
+    text-shadow: 0 0 4px #33ff66;
+    flex: 1;
+    caret-color: #33ff66;
+  }
+  #userInput { text-transform: uppercase; }
+
+  .starters { display: none; margin-top: 24px; border-top: 1px dashed #1f8a3d; padding-top: 16px; }
+  .starter-row { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+  .starter-text::before { content: "> "; color: #7bffa0; }
+  .starter-text { flex: 1; }
+  .copy-btn {
+    background: transparent;
+    border: 1px solid #1f8a3d;
+    color: #7bffa0;
+    font-family: 'VT323', 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-shadow: none;
+    border-radius: 2px;
+    align-self: center;
+  }
+  .copy-btn:hover { background: #1f8a3d; color: #071a07; }
+
+  button.term-btn, a.term-btn {
+    display: none;
+    margin-top: 20px;
+    color: #071a07;
+    background: #33ff66;
+    padding: 8px 18px;
+    text-decoration: none;
+    font-size: 20px;
+    font-family: 'VT323', 'Courier New', monospace;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  button.term-btn:hover, a.term-btn:hover { background: #7bffa0; }
+
+  .waiting { display: none; margin-top: 24px; }
+  .waiting .dots::after {
+    content: '';
+    animation: dots 1.4s steps(4, end) infinite;
+  }
+  @keyframes dots {
+    0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } 100% { content: ''; }
+  }
+</style>
+</head>
+<body>
+<div class="crt" id="crt">
+ <div class="screen">
+  <div id="log"></div>
+
+  <div id="inputLine">
+    <span class="label">YOU:</span>
+    <input id="userInput" class="term" type="text" autocomplete="off" />
+  </div>
+
+  <div class="starters" id="starters">
+    <div class="starter-row">
+      <span class="starter-text">"I don't get why a chatbot from the 1960s is such a big deal in a book about AI."</span>
+      <button class="copy-btn" data-copy="I don't get why a chatbot from the 1960s is such a big deal in a book about AI.">COPY</button>
+    </div>
+    <div class="starter-row">
+      <span class="starter-text">"We're discussing the Introduction today and I don't want to just sit there."</span>
+      <button class="copy-btn" data-copy="We're discussing the Introduction today and I don't want to just sit there.">COPY</button>
+    </div>
+    <div class="starter-row">
+      <span class="starter-text">"Someone in my class said this is basically about robots being scary — I don't think that's right."</span>
+      <button class="copy-btn" data-copy="Someone in my class said this is basically about robots being scary — I don't think that's right.">COPY</button>
+    </div>
+    <div class="starter-row">
+      <span class="starter-text">"Is this basically what's happening with people and ChatGPT now?"</span>
+      <button class="copy-btn" data-copy="Is this basically what's happening with people and ChatGPT now?">COPY</button>
+    </div>
+  </div>
+  <button class="term-btn" id="openSageBtn">OPEN SAGE &raquo;</button>
+
+  <div class="waiting" id="waiting">
+    <div class="dim">waiting for you to finish in Sage<span class="dots"></span></div>
+    <button class="term-btn" id="continueBtn" style="display:inline-block; margin-top:14px;">I'M DONE — CONTINUE</button>
+  </div>
+
+  <div id="inputLine2" style="display:none; align-items: center; margin-top: 10px;">
+    <span class="label" style="color:#7bffa0; margin-right:8px;">&gt;</span>
+    <input id="takeaway" class="term" type="text" autocomplete="off" placeholder="one sentence, spoken register" />
+  </div>
+ </div>
+</div>
+
+<script>
+// ===================================================================
+// SET THIS: paste your tutor's URL from Sage here.
+// Create the tutor at sage.utexas.edu using weizenbaum-intro-sage-tutor.md,
+// then copy its address from the browser bar and replace the line below.
+// Until you do, the button opens the Sage home page.
+// ===================================================================
+const SAGE_TUTOR_URL = "https://sage.utexas.edu/tutor/a59e71fb-56e4-41d2-b65d-346b0b364038";
+
+const log = document.getElementById('log');
+const crt = document.getElementById('crt');
+
+function appendLine(text, cls) {
+  const d = document.createElement('div');
+  if (cls) d.classList.add(cls);
+  d.innerHTML = text === "" ? "&nbsp;" : text;
+  log.appendChild(d);
+  crt.scrollTop = crt.scrollHeight;
+  return d;
+}
+
+function typeLine(text, delay, cls, cb) {
+  const d = appendLine("", cls);
+  let i = 0;
+  if (text === "") { setTimeout(cb, 150); return; }
+  (function step() {
+    d.textContent = text.slice(0, i);
+    i++;
+    if (i <= text.length) { crt.scrollTop = crt.scrollHeight; setTimeout(step, delay); }
+    else setTimeout(cb, 150);
+  })();
+}
+
+function typeSequence(lines, onDone) {
+  let idx = 0;
+  (function next() {
+    if (idx >= lines.length) { onDone(); return; }
+    const { t, d, cls } = lines[idx++];
+    typeLine(t, d, cls, next);
+  })();
+}
+
+// --- DOCTOR: a small, deliberately partial reimplementation ---
+// The response templates below are taken from the actual DOCTOR transcript
+// Weizenbaum reproduces in the Introduction (pp. 3-4) — "TELL ME MORE ABOUT
+// YOUR FAMILY", "CAN YOU THINK OF A SPECIFIC EXAMPLE", "WHAT MAKES YOU THINK
+// I AM...", and the closing callback move. Note that the real DOCTOR printed
+// no terminal punctuation; neither does this.
+
+// Pronoun reflection in a single pass, so "you" -> "I" and "I" -> "you"
+// can't undo each other. Pronoun+verb pairs are matched as whole phrases
+// (longest alternatives first) so contractions stay intact, and so a
+// third-person "are" ("men are all alike") is left alone.
+const REFLECTIONS = {
+  "i'm": "you are", "i am": "you are",
+  "you're": "I am", "you are": "I am",
+  "i've": "you have", "i have": "you have",
+  "you've": "I have", "you have": "I have",
+  "i'll": "you will", "i will": "you will",
+  "you'll": "I will", "you will": "I will",
+  "i was": "you were", "you were": "I was",
+  "i'd": "you would", "you'd": "I would",
+  "myself": "yourself", "yourself": "myself",
+  "mine": "yours", "yours": "mine",
+  "my": "your", "your": "my",
+  "me": "you", "you": "I", "i": "you"
+};
+
+const REFLECT_RE = new RegExp(
+  "\\b(" + [
+    "i'm", "i am", "you're", "you are", "i've", "i have", "you've", "you have",
+    "i'll", "i will", "you'll", "you will", "i was", "you were", "i'd", "you'd",
+    "myself", "yourself", "mine", "yours", "my", "your", "me", "you", "i"
+  ].join("|") + ")\\b", "gi"
+);
+
+function stripEdgePunct(s) {
+  return s.replace(/^[\s.,!?;:]+|[\s.,!?;:]+$/g, '');
+}
+
+function reflect(s) {
+  return stripEdgePunct(
+    s.replace(REFLECT_RE, m => REFLECTIONS[m.toLowerCase()] ?? m)
+  );
+}
+
+// DOCTOR kept an earlier remark in reserve and returned to it — the transcript
+// ends on "DOES THAT HAVE ANYTHING TO DO WITH THE FACT THAT YOUR BOYFRIEND
+// MADE YOU COME HERE". We hold the first substantial thing the student says.
+let elizaMemory = null;
+let exchangeCount = 0;
+
+function elizaReflect(input) {
+  exchangeCount++;
+  const text = stripEdgePunct(input.trim());
+
+  // The callback move, saved for the third exchange.
+  if (exchangeCount === 3 && elizaMemory) {
+    const recalled = elizaMemory;
+    elizaMemory = null;
+    return `Does that have anything to do with the fact that ${recalled}`;
+  }
+
+  const patterns = [
+    // Family — the transcript's most famous move.
+    [/\b(mother|father|mom|dad|mum|sister|brother|parents|family|children|kids)\b/i,
+      () => "Tell me more about your family"],
+    // Absolutes invite the request for specifics.
+    [/\b(always|never|everyone|everybody|nobody|no one|all the time)\b/i,
+      () => "Can you think of a specific example"],
+    [/\bi need (.+)/i, m => `What would it mean to you if you got ${reflect(m[1])}`],
+    [/\bi (?:am|'m) (?:so |really |very )?(sad|unhappy|depressed|miserable|worried|scared|anxious|nervous|afraid|stressed)\b/i,
+      m => `I am sorry to hear you are ${m[1].toLowerCase()}`],
+    [/\bi (?:am|'m) (.+)/i, m => `How long have you been ${reflect(m[1])}`],
+    [/\bi can'?t (.+)/i, m => `What makes you think you can't ${reflect(m[1])}`],
+    [/\bi don'?t know\b/i, () => "Why don't you know"],
+    [/\bi feel (.+)/i, m => `Do you often feel ${reflect(m[1])}`],
+    [/\bi think (.+)/i, () => "Do you really think so"],
+    // Talking about the program itself.
+    [/\byou(?:'re| are) (.+)/i, m => `What makes you think I am ${reflect(m[1])}`],
+    [/\byou don'?t (.+)/i, m => `Why do you think I don't ${reflect(m[1])}`],
+    [/\b(computer|machine|program|chatbot|ai|robot)s?\b/i,
+      () => "Do computers worry you"],
+    [/\bbecause\b/i, () => "Is that the real reason"],
+    [/\bsorry\b/i, () => "Please don't apologize"],
+    [/\bdream/i, () => "What does that dream suggest to you"],
+    [/^\s*yes\b/i, () => "You seem quite positive"],
+    [/^\s*no\b/i, () => "Why not"],
+  ];
+
+  let reply = null;
+  for (const [re, fn] of patterns) {
+    const m = text.match(re);
+    if (m) { reply = fn(m); break; }
+  }
+
+  if (!reply) {
+    const openers = [
+      "In what way",
+      "Can you elaborate on that",
+      "Please go on",
+      "Why do you say that",
+      "Tell me more"
+    ];
+    reply = openers[exchangeCount % openers.length];
+  }
+
+  // Hold the first substantial remark for the later callback.
+  if (!elizaMemory && text.length > 12) elizaMemory = reflect(text);
+
+  return reply;
+}
+
+// ================= Scene 1: cold open — straight into ELIZA, no framing =================
+const briefing = [
+  { t: "SAGE TERMINAL v1.0", d: 20 },
+  { t: "", d: 0 },
+  { t: "> HELLO, I AM ELIZA.", d: 35, cls: "prompt" },
+  { t: "> TELL ME WHAT IS TROUBLING YOU.", d: 35, cls: "prompt" },
+];
+
+// ================= Scene 2: three rounds with ELIZA =================
+const MAX_ROUNDS = 3;
+let round = 0;
+
+const inputLine = document.getElementById('inputLine');
+const input = document.getElementById('userInput');
+
+input.addEventListener('input', () => { input.value = input.value.toUpperCase(); });
+
+// One live exchange with ELIZA: show input, wait for Enter, echo, reflect, then callback.
+function elizaRound(cb) {
+  input.value = '';
+  inputLine.style.display = 'flex';
+  input.focus();
+
+  input.addEventListener('keydown', function handler(e) {
+    if (e.key !== 'Enter') return;
+    const val = input.value.toUpperCase();
+    if (!val.trim()) return;
+    input.removeEventListener('keydown', handler);
+    inputLine.style.display = 'none';
+
+    const escaped = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    appendLine("YOU: " + escaped);
+    appendLine("");
+
+    const reply = elizaReflect(val).toUpperCase();
+    typeLine(reply, 30, "prompt", () => {
+      appendLine("");
+      cb();
+    });
+  });
+}
+
+function startRound() {
+  elizaRound(() => {
+    round++;
+    if (round < MAX_ROUNDS) setTimeout(startRound, 500);
+    else setTimeout(breakCharacter, 600);
+  });
+}
+
+// ================= Scene 3: break character, pivot to Weizenbaum =================
+function breakCharacter() {
+  const afterEliza = [
+    { t: "...", d: 300 },
+    { t: "", d: 0 },
+    { t: "Three rounds. Feels pretty familiar by now, doesn't it —", d: 16 },
+    { t: "you've talked to plenty of chatbots before.", d: 16 },
+    { t: "", d: 0 },
+    { t: "Now picture meeting this in 1966. No internet, no ChatGPT,", d: 14 },
+    { t: "no frame of reference at all — just a screen answering back", d: 14 },
+    { t: "like it understood you.", d: 14 },
+    { t: "", d: 0 },
+    { t: "Joseph Weizenbaum built ELIZA at MIT in 1966 — a program for", d: 14 },
+    { t: "holding a conversation in plain English — and wrote it a", d: 14 },
+    { t: "script called DOCTOR, which made it imitate a Rogerian", d: 14 },
+    { t: "psychotherapist. That DOCTOR script is what you just talked to.", d: 14 },
+    { t: "", d: 0 },
+    { t: "Here's the part worth sitting with. Every other impressive", d: 14 },
+    { t: "program at MIT needed you to already know something — some", d: 14 },
+    { t: "branch of mathematics, some specialty — before you could see", d: 14 },
+    { t: "why it mattered. DOCTOR needed nothing. In Weizenbaum's words,", d: 14 },
+    { t: "it \"could be appreciated on some level by anyone,\" and the", d: 14 },
+    { t: "visitor \"could actually participate in its operation.\"", d: 14 },
+    { t: "", d: 0 },
+    { t: "You just did. No manual, no training, no password — you typed a", d: 14 },
+    { t: "sentence in your own language and something answered. That is", d: 14 },
+    { t: "the whole reason it spread, and it should sound extremely", d: 14 },
+    { t: "familiar: it's why everyone you know suddenly has opinions", d: 14 },
+    { t: "about AI now, when almost none of them did ten years ago.", d: 14 },
+    { t: "The interface became language, and the gate came down.", d: 14 },
+    { t: "", d: 0 },
+    { t: "And that's exactly what alarmed him. His own secretary asked him", d: 14 },
+    { t: "to leave the room so she could talk to it privately. Colleagues", d: 14 },
+    { t: "— even psychiatrists — proposed automating therapy with it.", d: 14 },
+    { t: "", d: 0 },
+    { t: "Weizenbaum thought that reaction was a kind of hysteria, and", d: 14 },
+    { t: "it's why he opened Computer Power and Human Reason (1976)", d: 14 },
+    { t: "with this story: not to boast about ELIZA, but to warn about", d: 14 },
+    { t: "how easily we hand our judgment to something that only looks", d: 14 },
+    { t: "like it understands us.", d: 14 },
+    { t: "", d: 0 },
+    { t: "This tutor works through that Introduction with you — not to", d: 14 },
+    { t: "summarize it for you, but to sharpen your reading and get you", d: 14 },
+    { t: "ready to speak about it in class.", d: 14 },
+    { t: "", d: 0 },
+    { t: "HOW THIS WORKS:", d: 18, cls: "heading" },
+    { t: "You'll hit short checkpoints as you talk with the real tutor —", d: 20 },
+    { t: "some easy warm-ups, some \"say it back in your own words,\" and", d: 20 },
+    { t: "some \"refute this claim with evidence from the text.\"", d: 20 },
+    { t: "", d: 0 },
+    { t: "BEFORE YOU GO:", d: 18, cls: "heading" },
+    { t: "1. Have the Introduction open in front of you, marked up. Underline", d: 20 },
+    { t: "   what strikes you, write in the margins, argue with him on the page.", d: 20 },
+    { t: "2. Bring a real question, or a real disagreement — from your notes.", d: 20 },
+    { t: "3. Talk like you would in class — short, direct, evidence-backed.", d: 20 },
+    { t: "   Point to a passage. \"On page 6, he says—\" beats \"I think maybe—\".", d: 20 },
+  ];
+  typeSequence(afterEliza, quoteCheck);
+}
+
+// --- Key-passage warm-up: nominate a quote, then defend it ---
+function promptFreeText(placeholder, cb) {
+  const inputLine2 = document.getElementById('inputLine2');
+  const box = document.getElementById('takeaway');
+  box.value = '';
+  box.placeholder = placeholder;
+  inputLine2.style.display = 'flex';
+  box.focus();
+  box.addEventListener('keydown', function handler(e) {
+    if (e.key !== 'Enter') return;
+    const val = box.value.trim();
+    if (!val) return;
+    box.removeEventListener('keydown', handler);
+    inputLine2.style.display = 'none';
+    const escaped = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    appendLine("YOU: " + escaped);
+    appendLine("");
+    cb(val);
+  });
+}
+
+function quoteCheck() {
+  typeSequence([
+    { t: "", d: 0 },
+    { t: "Actually — let's warm that up right now.", d: 16 },
+    { t: "", d: 0 },
+    { t: "Find ONE sentence in the Introduction you'd nominate as", d: 16 },
+    { t: "essential — a line you'd read aloud in class. Type it here", d: 16 },
+    { t: "(or enough of it to know which one you mean):", d: 16 },
+  ], () => {
+    promptFreeText("type the sentence, or enough of it", (quote) => {
+      typeSequence([
+        { t: "Good. Now the harder half — in one line, why does it", d: 16 },
+        { t: "matter? Not what it says. What does the chapter lose", d: 16 },
+        { t: "if that sentence is cut?", d: 16 },
+      ], () => {
+        promptFreeText("one line — why it matters", (why) => {
+          typeSequence([
+            { t: "That's a claim you can raise your hand with. Write it in", d: 16 },
+            { t: "the margin next to the passage — and when Sage asks you", d: 16 },
+            { t: "for a key passage (it will), you'll already have one loaded.", d: 16 },
+            { t: "", d: 0 },
+            { t: "SOME WAYS TO START:", d: 18 },
+          ], () => {
+            document.getElementById('starters').style.display = 'block';
+            const btn = document.getElementById('openSageBtn');
+            btn.style.display = 'inline-block';
+            btn.addEventListener('click', openSage, { once: true });
+          });
+        });
+      });
+    });
+  });
+}
+
+// ================= Scene 4: hand off to Sage, auto-resume when they're back =================
+let sageWin = null;
+let pollId = null;
+
+function openSage() {
+  document.getElementById('starters').style.display = 'none';
+  document.getElementById('openSageBtn').style.display = 'none';
+
+  sageWin = window.open(SAGE_TUTOR_URL, '_blank');
+
+  appendLine("");
+  typeLine("Opening Sage in another tab.", 16, null, () => {
+    document.getElementById('waiting').style.display = 'block';
+
+    if (!sageWin) {
+      appendLine("(pop-ups may be blocked — go to sage.utexas.edu directly,", "dim");
+      appendLine("then click \"I'm done\" below when you're finished.)", "dim");
+    }
+
+    document.getElementById('continueBtn').addEventListener('click', () => {
+      if (pollId) clearInterval(pollId);
+      resumeAfterSage();
+    }, { once: true });
+
+    if (sageWin) {
+      pollId = setInterval(() => {
+        if (sageWin.closed) {
+          clearInterval(pollId);
+          resumeAfterSage();
+        }
+      }, 1000);
+    }
+  });
+}
+
+function resumeAfterSage() {
+  document.getElementById('waiting').style.display = 'none';
+  appendLine("");
+  // ELIZA is who greets you back — not a narrator.
+  typeSequence([
+    { t: "> WELCOME BACK.", d: 30, cls: "prompt" },
+    { t: "> HOW DID THAT FEEL?", d: 30, cls: "prompt" },
+  ], () => {
+    elizaRound(() => {
+      setTimeout(breakCharacterAgain, 500);
+    });
+  });
+}
+
+function breakCharacterAgain() {
+  typeSequence([
+    { t: "...", d: 300 },
+    { t: "", d: 0 },
+    { t: "Okay — stepping out of ELIZA one more time.", d: 16 },
+    { t: "", d: 0 },
+    { t: "Go back to your notes for a second. Anything you underlined or", d: 16 },
+    { t: "scribbled while reading — or anything that clicked just now in", d: 16 },
+    { t: "Sage — write it in the margin next to the passage it belongs to,", d: 16 },
+    { t: "in your own words. Marked-up pages are what you'll actually be", d: 16 },
+    { t: "able to speak from in class. A chat transcript isn't.", d: 16 },
+    { t: "", d: 0 },
+    { t: "Then: if you got called on in class right now, what's the one", d: 16 },
+    { t: "thing you'd say — and which passage would you point to?", d: 16 },
+  ], () => {
+    const inputLine2 = document.getElementById('inputLine2');
+    const takeaway = document.getElementById('takeaway');
+    inputLine2.style.display = 'flex';
+    takeaway.focus();
+
+    takeaway.addEventListener('keydown', function handler(e) {
+      if (e.key !== 'Enter') return;
+      const val = takeaway.value.trim();
+      if (!val) return;
+      takeaway.removeEventListener('keydown', handler);
+      inputLine2.style.display = 'none';
+
+      const escaped = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      appendLine("");
+      appendLine("LOGGED: " + escaped, "prompt");
+      appendLine("");
+      typeSequence([
+        { t: "Good. Say it exactly like that if you get the chance.", d: 16 },
+        { t: "", d: 0 },
+        { t: "Now copy it into your notes, next to the passage it came from.", d: 14 },
+        { t: "This screen isn't saved anywhere — your marked-up reading is", d: 14 },
+        { t: "the only thing walking into class with you.", d: 14 },
+      ], () => {});
+    });
+  });
+}
+
+// Copy-to-clipboard for the conversation starters.
+function fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+  cb();
+}
+
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.getAttribute('data-copy');
+    const done = () => {
+      btn.textContent = 'COPIED';
+      setTimeout(() => { btn.textContent = 'COPY'; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  });
+});
+
+typeSequence(briefing, startRound);
+</script>
+</body>
+</html>
