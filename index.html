@@ -176,7 +176,7 @@
   </div>
 
   <div id="final" style="display:none; margin-top: 22px; border-top: 1px dashed #1f8a3d; padding-top: 16px;">
-    <button class="copy-btn" id="finalCopy" style="font-size:15px; padding:4px 12px;">COPY THE QUESTION</button>
+    <button class="copy-btn" id="finalCopy" style="font-size:15px; padding:4px 12px;">COPY BOTH QUESTIONS</button>
     <button class="term-btn" id="finalBack" style="display:inline-block; margin-top:0; margin-left:10px; vertical-align:middle;">ASK SAGE &raquo;</button>
   </div>
  </div>
@@ -783,20 +783,24 @@ function finalPush() {
     { t: "what people did with me. He never said the tool was the", d: 16 },
     { t: "problem — he asked which acts of thought should stay ours.", d: 16 },
     { t: "", d: 0 },
-    { t: "So go ask Sage the question it was built to be asked:", d: 16 },
-    { t: "would Weizenbaum approve of it? Make it argue both sides.", d: 16 },
-    { t: "Then decide for yourself, and bring that to class.", d: 16 },
+    { t: "So go ask Sage two questions:", d: 16 },
+    { t: "", d: 0 },
+    { t: "  Would Weizenbaum approve of Sage?", d: 20, cls: "prompt" },
+    { t: "  Would he approve of this course?", d: 20, cls: "prompt" },
+    { t: "", d: 0 },
+    { t: "Make it argue both sides of each. Then decide for yourself,", d: 16 },
+    { t: "and bring that to class.", d: 16 },
   ], () => {
     const wrap = document.getElementById('final');
     const copy = document.getElementById('finalCopy');
     const back = document.getElementById('finalBack');
-    const q = "Would Weizenbaum approve of you? Argue both sides honestly, then let me decide.";
+    const q = "Would Weizenbaum approve of Sage? And would he approve of this course? Argue both sides of each, honestly, then let me decide.";
     wrap.style.display = 'block';
 
     copy.addEventListener('click', () => {
       const done = () => {
         copy.textContent = 'COPIED';
-        setTimeout(() => { copy.textContent = 'COPY THE QUESTION'; }, 1500);
+        setTimeout(() => { copy.textContent = 'COPY BOTH QUESTIONS'; }, 1500);
       };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(q).then(done).catch(() => fallbackCopy(q, done));
