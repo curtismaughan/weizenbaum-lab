@@ -768,9 +768,7 @@ function resumeAfterSharpen() {
 }
 
 function finalPush() {
-  log.innerHTML = '';
-  skipRequested = false;
-  typeSequence([
+  showPage([
     { t: "...", d: 300 },
     { t: "", d: 0 },
     { t: "One last thing, and then I'll stop pretending.", d: 16 },
@@ -782,14 +780,40 @@ function finalPush() {
     { t: "Weizenbaum built me. Then he spent a decade unsettled by", d: 16 },
     { t: "what people did with me. He never said the tool was the", d: 16 },
     { t: "problem — he asked which acts of thought should stay ours.", d: 16 },
+  ], askTheQuestions);
+}
+
+// The student answers first. Only then do they get to consult the machine.
+function askTheQuestions() {
+  log.innerHTML = '';
+  skipRequested = false;
+  typeSequence([
+    { t: "Before you ask anyone else — what do you think?", d: 16 },
     { t: "", d: 0 },
-    { t: "So go ask Sage two questions:", d: 16 },
+    { t: "Would Weizenbaum approve of Sage?", d: 20, cls: "prompt" },
+  ], () => {
+    promptFreeText("your answer", () => {
+      typeSequence([
+        { t: "And would he approve of this course?", d: 20, cls: "prompt" },
+      ], () => {
+        promptFreeText("your answer", () => {
+          setTimeout(handOffQuestions, 400);
+        });
+      });
+    });
+  });
+}
+
+function handOffQuestions() {
+  log.innerHTML = '';
+  skipRequested = false;
+  typeSequence([
+    { t: "Those are your answers. Hold onto them.", d: 16 },
     { t: "", d: 0 },
-    { t: "  Would Weizenbaum approve of Sage?", d: 20, cls: "prompt" },
-    { t: "  Would he approve of this course?", d: 20, cls: "prompt" },
+    { t: "Now take the same two questions to Sage and make it argue", d: 16 },
+    { t: "both sides of each. See whether it moves you.", d: 16 },
     { t: "", d: 0 },
-    { t: "Make it argue both sides of each. Then decide for yourself,", d: 16 },
-    { t: "and bring that to class.", d: 16 },
+    { t: "Either way the verdict stays yours. Bring it to class.", d: 16 },
   ], () => {
     const wrap = document.getElementById('final');
     const copy = document.getElementById('finalCopy');
