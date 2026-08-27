@@ -25,7 +25,8 @@
     text-shadow: 0 0 4px #33ff66, 0 0 10px rgba(51,255,102,0.4);
     font-size: 22px;
     line-height: 1.5;
-    overflow: hidden;
+    /* Pages are built to fit, but never trap a reader below the fold. */
+    overflow-y: auto;
   }
 
   .screen {
@@ -686,13 +687,11 @@ function breakCharacterAgain() {
       skipRequested = false;
       appendLine("LOGGED: " + escaped, "prompt");
       appendLine("");
-      typeSequence([
+      showPage([
         { t: "That's your raw material — not the finished line.", d: 16 },
         { t: "", d: 0 },
         { t: "ELIZA can't tell whether it's sharp enough. Sage can.", d: 16 },
-        { t: "Take it back and ask it to push you on that one sentence:", d: 16 },
-        { t: "which passage, and what the chapter loses without it.", d: 16 },
-      ], () => showSharpen(val));
+      ], () => showSharpen(val), { keep: true });
     });
   });
 }
@@ -705,8 +704,18 @@ function showSharpen(line) {
   const copy = document.getElementById('sharpenCopy');
   const back = document.getElementById('sharpenBack');
 
-  box.textContent = line;
-  wrap.style.display = 'block';
+  // Fresh screen: the instruction, their line, and two buttons — nothing else.
+  // Nothing scrolls here, so this page has to stay short by construction.
+  log.innerHTML = '';
+  skipRequested = false;
+  typeSequence([
+    { t: "Take it back to Sage and ask it to push you on that one", d: 16 },
+    { t: "sentence: which passage, and what the chapter loses", d: 16 },
+    { t: "without it.", d: 16 },
+  ], () => {
+    box.textContent = line;
+    wrap.style.display = 'block';
+  });
 
   copy.addEventListener('click', () => {
     const text = 'Here\'s what I\'d say in class: "' + line +
