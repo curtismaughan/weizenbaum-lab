@@ -140,12 +140,12 @@
       <button class="copy-btn" data-copy="I don't get why a chatbot from the 1960s is such a big deal in a book about AI.">COPY</button>
     </div>
     <div class="starter-row">
-      <span class="starter-text">"We're discussing the Introduction today and I don't want to just sit there."</span>
-      <button class="copy-btn" data-copy="We're discussing the Introduction today and I don't want to just sit there.">COPY</button>
+      <span class="starter-text">"We're discussing the Introduction in class today — help me get ready to say something."</span>
+      <button class="copy-btn" data-copy="We're discussing the Introduction in class today — help me get ready to say something.">COPY</button>
     </div>
     <div class="starter-row">
-      <span class="starter-text">"Someone in my class said this is basically about robots being scary — I don't think that's right."</span>
-      <button class="copy-btn" data-copy="Someone in my class said this is basically about robots being scary — I don't think that's right.">COPY</button>
+      <span class="starter-text">"I have a lot of ideas about this text but I don't feel ready to talk about it in class."</span>
+      <button class="copy-btn" data-copy="I have a lot of ideas about this text but I don't feel ready to talk about it in class.">COPY</button>
     </div>
     <div class="starter-row">
       <span class="starter-text">"Is this basically what's happening with people and ChatGPT now?"</span>
@@ -446,9 +446,10 @@ function breakCharacter() {
     { t: "psychotherapist. A version of that DOCTOR script is what", d: 14 },
     { t: "you just talked to.", d: 14 },
     { t: "", d: 0 },
-    { t: "What happened next alarmed him. His own secretary asked him", d: 14 },
-    { t: "to leave the room so she could talk to it privately. Colleagues", d: 14 },
-    { t: "— even psychiatrists — proposed automating therapy with it.", d: 14 },
+    { t: "What happened next deeply alarmed him. His own secretary asked", d: 14 },
+    { t: "him to leave the room so she could talk to it privately.", d: 14 },
+    { t: "Colleagues — even psychiatrists — proposed automating", d: 14 },
+    { t: "therapy with it.", d: 14 },
     { t: "", d: 0 },
     { t: "That's why he set out to write Computer Power and Human", d: 14 },
     { t: "Reason (1976) — a response to how people were treating a", d: 14 },
@@ -474,9 +475,9 @@ function breakCharacter() {
   // Split the reveal into beats. Each fills one screen, then waits.
   const beats = [
     afterEliza.slice(0, 8),    // three rounds + 1966
-    afterEliza.slice(8, 18),   // Weizenbaum, DOCTOR, what happened next
-    afterEliza.slice(18, 25),  // why he wrote the book + what this tutor is
-    afterEliza.slice(25),      // how this works + suggestions
+    afterEliza.slice(8, 19),   // Weizenbaum, DOCTOR, what happened next
+    afterEliza.slice(19, 26),  // why he wrote the book + what this tutor is
+    afterEliza.slice(26),      // how this works + suggestions
   ];
 
   let i = 0;
