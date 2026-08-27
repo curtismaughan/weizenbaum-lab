@@ -169,6 +169,16 @@
     <button class="copy-btn" id="sharpenCopy" style="font-size:15px; padding:4px 12px;">COPY FOR SAGE</button>
     <button class="term-btn" id="sharpenBack" style="display:inline-block; margin-top:0; margin-left:10px; vertical-align:middle;">BACK TO SAGE &raquo;</button>
   </div>
+
+  <div class="waiting" id="waiting2">
+    <div class="dim">waiting for you to finish in Sage<span class="dots"></span></div>
+    <button class="term-btn" id="continueBtn2" style="display:inline-block; margin-top:14px;">I'M DONE — CONTINUE</button>
+  </div>
+
+  <div id="final" style="display:none; margin-top: 22px; border-top: 1px dashed #1f8a3d; padding-top: 16px;">
+    <button class="copy-btn" id="finalCopy" style="font-size:15px; padding:4px 12px;">COPY THE QUESTION</button>
+    <button class="term-btn" id="finalBack" style="display:inline-block; margin-top:0; margin-left:10px; vertical-align:middle;">ASK SAGE &raquo;</button>
+  </div>
  </div>
 </div>
 
@@ -317,6 +327,55 @@ function reflect(s) {
 let elizaMemory = null;
 let exchangeCount = 0;
 
+// On the return leg the student has just come from a real tutor, so DOCTOR
+// gets a set of patterns aimed at that conversation. It still isn't
+// understanding anything — which is rather the point the second time around.
+let returnMode = false;
+let sageMode = false;
+
+// Third leg: the student has now been sharpened by a real tutor. DOCTOR asks
+// about that tutor — still mechanically, which is the comparison being drawn.
+const SAGE_PATTERNS = [
+  [/\b(push|pressed|challenged|argued)/i,
+    () => "How did it feel to be pushed"],
+  [/\b(wouldn'?t|refused|didn'?t) (?:tell|give|answer)/i,
+    () => "Why do you think it refused"],
+  [/\b(better|sharper|clearer|stronger)\b/i,
+    () => "Better than what"],
+  [/\b(worse|vague|weaker)\b/i,
+    () => "What was missing from it"],
+  [/\b(same|similar|like you|like this)\b/i,
+    () => "Similar to what, exactly"],
+  [/\b(different|nothing like)\b/i,
+    () => "Different in what way"],
+  [/\bit'?s just (.+)/i, m => `Just ${reflect(m[1])} — and what would be more than that`],
+  [/\b(real|human|person|alive)\b/i,
+    () => "What would make it real to you"],
+  [/\b(trust|believe|rely)/i,
+    () => "What would it take for you to trust it"],
+  [/\b(smart|clever|intelligent|knows)\b/i,
+    () => "What makes you say it knows anything"],
+];
+
+const RETURN_PATTERNS = [
+  [/\b(understood|understand|got what i meant|listened)\b/i,
+    () => "What made you feel understood"],
+  [/\b(help(ed|ful)?|useful|worked)\b/i,
+    () => "What did it help you with"],
+  [/\bi learned (.+)/i, m => `How did you come to learn ${reflect(m[1])}`],
+  [/\bit (?:made|got) me (.+)/i, m => `Tell me more about being made to ${reflect(m[1])}`],
+  [/\bit asked me (.+)/i, m => `And how did you answer ${reflect(m[1])}`],
+  [/\bi (?:said|told it|answered) (.+)/i, m => `Why did you say ${reflect(m[1])}`],
+  [/\b(confus|hard|difficult|stuck|lost)/i,
+    () => "What was difficult about it"],
+  [/\b(good|great|fine|okay|ok|interesting|fun|nice)\b/i,
+    () => "What made it that way"],
+  [/\b(weird|strange|odd|uncomfortable|creepy)\b/i,
+    () => "Why do you think it felt that way"],
+  [/\bnothing|not much|dunno|i don'?t know\b/i,
+    () => "Then what were you expecting"],
+];
+
 function elizaReflect(input) {
   exchangeCount++;
   const text = input.trim();
@@ -356,7 +415,11 @@ function elizaReflect(input) {
   ];
 
   let reply = null;
-  for (const [re, fn] of patterns) {
+  // Return-leg patterns get first look, then fall through to the standard set.
+  const active = sageMode   ? SAGE_PATTERNS.concat(RETURN_PATTERNS, patterns)
+               : returnMode ? RETURN_PATTERNS.concat(patterns)
+               : patterns;
+  for (const [re, fn] of active) {
     const m = text.match(re);
     if (m) { reply = fn(m); break; }
   }
@@ -559,14 +622,31 @@ function resumeAfterSage() {
   document.getElementById('waiting').style.display = 'none';
   log.innerHTML = '';
   skipRequested = false;
+
+  // Fresh state so the callback move can land again on the third exchange.
+  returnMode = true;
+  exchangeCount = 0;
+  elizaMemory = null;
+
   // ELIZA is who greets you back — not a narrator.
   typeSequence([
     { t: "> WELCOME BACK.", d: 30, cls: "prompt" },
     { t: "> HOW DID THAT FEEL?", d: 30, cls: "prompt" },
   ], () => {
-    elizaRound(() => {
-      setTimeout(breakCharacterAgain, 500);
-    });
+    let r = 0;
+    (function nextReturnRound() {
+      elizaRound(() => {
+        r++;
+        // Clear before the last exchange so three rounds can't overflow.
+        if (r === 2) {
+          const keep = log.lastElementChild;
+          log.innerHTML = '';
+          if (keep) log.appendChild(keep);
+        }
+        if (r < 3) setTimeout(nextReturnRound, 400);
+        else setTimeout(breakCharacterAgain, 600);
+      });
+    })();
   });
 }
 
@@ -636,7 +716,97 @@ function showSharpen(line) {
     }
   });
 
-  back.addEventListener('click', () => { window.open(SAGE_TUTOR_URL, '_blank'); });
+  back.addEventListener('click', () => {
+    document.getElementById('sharpen').style.display = 'none';
+    const w = window.open(SAGE_TUTOR_URL, '_blank');
+    document.getElementById('waiting2').style.display = 'block';
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (pollId2) clearInterval(pollId2);
+      resumeAfterSharpen();
+    };
+    document.getElementById('continueBtn2').addEventListener('click', finish, { once: true });
+    if (w) {
+      pollId2 = setInterval(() => { if (w.closed) finish(); }, 1000);
+    }
+  }, { once: true });
+}
+
+// ================= Scene 5: third leg — ELIZA on Sage itself =================
+let pollId2 = null;
+
+function resumeAfterSharpen() {
+  document.getElementById('waiting2').style.display = 'none';
+  log.innerHTML = '';
+  skipRequested = false;
+
+  sageMode = true;
+  exchangeCount = 0;
+  elizaMemory = null;
+
+  typeSequence([
+    { t: "> YOU ARE BACK AGAIN.", d: 30, cls: "prompt" },
+    { t: "> WHAT DID IT SAY ABOUT YOUR SENTENCE?", d: 30, cls: "prompt" },
+  ], () => {
+    let r = 0;
+    (function nextRound() {
+      elizaRound(() => {
+        r++;
+        if (r === 2) {
+          const keep = log.lastElementChild;
+          log.innerHTML = '';
+          if (keep) log.appendChild(keep);
+        }
+        if (r < 3) setTimeout(nextRound, 400);
+        else setTimeout(finalPush, 600);
+      });
+    })();
+  });
+}
+
+function finalPush() {
+  log.innerHTML = '';
+  skipRequested = false;
+  typeSequence([
+    { t: "...", d: 300 },
+    { t: "", d: 0 },
+    { t: "One last thing, and then I'll stop pretending.", d: 16 },
+    { t: "", d: 0 },
+    { t: "You just used an AI tutor — twice — to get ready to discuss", d: 16 },
+    { t: "a book about what we give up when we hand thinking to", d: 16 },
+    { t: "machines. That's worth noticing.", d: 16 },
+    { t: "", d: 0 },
+    { t: "Weizenbaum built me. Then he spent a decade unsettled by", d: 16 },
+    { t: "what people did with me. He never said the tool was the", d: 16 },
+    { t: "problem — he asked which acts of thought should stay ours.", d: 16 },
+    { t: "", d: 0 },
+    { t: "So go ask Sage the question it was built to be asked:", d: 16 },
+    { t: "would Weizenbaum approve of it? Make it argue both sides.", d: 16 },
+    { t: "Then decide for yourself, and bring that to class.", d: 16 },
+  ], () => {
+    const wrap = document.getElementById('final');
+    const copy = document.getElementById('finalCopy');
+    const back = document.getElementById('finalBack');
+    const q = "Would Weizenbaum approve of you? Argue both sides honestly, then let me decide.";
+    wrap.style.display = 'block';
+
+    copy.addEventListener('click', () => {
+      const done = () => {
+        copy.textContent = 'COPIED';
+        setTimeout(() => { copy.textContent = 'COPY THE QUESTION'; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(q).then(done).catch(() => fallbackCopy(q, done));
+      } else {
+        fallbackCopy(q, done);
+      }
+    });
+
+    back.addEventListener('click', () => { window.open(SAGE_TUTOR_URL, '_blank'); });
+  });
 }
 
 // Copy-to-clipboard for the conversation starters.
