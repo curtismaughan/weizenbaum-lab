@@ -168,7 +168,7 @@
 // then copy its address from the browser bar and replace the line below.
 // Until you do, the button opens the Sage home page.
 // ===================================================================
-const SAGE_TUTOR_URL = "https://sage.utexas.edu/tutor/a59e71fb-56e4-41d2-b65d-346b0b364038";
+const SAGE_TUTOR_URL = "https://sage.utexas.edu/tutor/a59e71fb-56e4-41d2-b65d-346b0b364038/chat";
 
 const log = document.getElementById('log');
 const crt = document.getElementById('crt');
@@ -207,8 +207,9 @@ function typeSequence(lines, onDone) {
 // The response templates below are taken from the actual DOCTOR transcript
 // Weizenbaum reproduces in the Introduction (pp. 3-4) — "TELL ME MORE ABOUT
 // YOUR FAMILY", "CAN YOU THINK OF A SPECIFIC EXAMPLE", "WHAT MAKES YOU THINK
-// I AM...", and the closing callback move. Note that the real DOCTOR printed
-// no terminal punctuation; neither does this.
+// I AM...", and the closing callback move. The printed transcript carries no
+// terminal punctuation, but we keep question marks on interrogatives so the
+// lines don't read as broken to students meeting this cold.
 
 // Pronoun reflection in a single pass, so "you" -> "I" and "I" -> "you"
 // can't undo each other. Pronoun+verb pairs are matched as whole phrases
@@ -237,6 +238,10 @@ const REFLECT_RE = new RegExp(
   ].join("|") + ")\\b", "gi"
 );
 
+// The printed transcript shows no terminal punctuation on DOCTOR's lines,
+// but question marks read better for students meeting this cold, so we keep
+// them on interrogatives. Trailing punctuation is stripped off the student's
+// own words first, so a reflected fragment can't produce "...YOUR EXAMS. ?".
 function stripEdgePunct(s) {
   return s.replace(/^[\s.,!?;:]+|[\s.,!?;:]+$/g, '');
 }
@@ -255,13 +260,13 @@ let exchangeCount = 0;
 
 function elizaReflect(input) {
   exchangeCount++;
-  const text = stripEdgePunct(input.trim());
+  const text = input.trim();
 
   // The callback move, saved for the third exchange.
   if (exchangeCount === 3 && elizaMemory) {
     const recalled = elizaMemory;
     elizaMemory = null;
-    return `Does that have anything to do with the fact that ${recalled}`;
+    return `Does that have anything to do with the fact that ${recalled}?`;
   }
 
   const patterns = [
@@ -270,25 +275,25 @@ function elizaReflect(input) {
       () => "Tell me more about your family"],
     // Absolutes invite the request for specifics.
     [/\b(always|never|everyone|everybody|nobody|no one|all the time)\b/i,
-      () => "Can you think of a specific example"],
-    [/\bi need (.+)/i, m => `What would it mean to you if you got ${reflect(m[1])}`],
+      () => "Can you think of a specific example?"],
+    [/\bi need (.+)/i, m => `What would it mean to you if you got ${reflect(m[1])}?`],
     [/\bi (?:am|'m) (?:so |really |very )?(sad|unhappy|depressed|miserable|worried|scared|anxious|nervous|afraid|stressed)\b/i,
       m => `I am sorry to hear you are ${m[1].toLowerCase()}`],
-    [/\bi (?:am|'m) (.+)/i, m => `How long have you been ${reflect(m[1])}`],
-    [/\bi can'?t (.+)/i, m => `What makes you think you can't ${reflect(m[1])}`],
-    [/\bi don'?t know\b/i, () => "Why don't you know"],
-    [/\bi feel (.+)/i, m => `Do you often feel ${reflect(m[1])}`],
-    [/\bi think (.+)/i, () => "Do you really think so"],
+    [/\bi (?:am|'m) (.+)/i, m => `How long have you been ${reflect(m[1])}?`],
+    [/\bi can'?t (.+)/i, m => `What makes you think you can't ${reflect(m[1])}?`],
+    [/\bi don'?t know\b/i, () => "Why don't you know?"],
+    [/\bi feel (.+)/i, m => `Do you often feel ${reflect(m[1])}?`],
+    [/\bi think (.+)/i, () => "Do you really think so?"],
     // Talking about the program itself.
-    [/\byou(?:'re| are) (.+)/i, m => `What makes you think I am ${reflect(m[1])}`],
-    [/\byou don'?t (.+)/i, m => `Why do you think I don't ${reflect(m[1])}`],
+    [/\byou(?:'re| are) (.+)/i, m => `What makes you think I am ${reflect(m[1])}?`],
+    [/\byou don'?t (.+)/i, m => `Why do you think I don't ${reflect(m[1])}?`],
     [/\b(computer|machine|program|chatbot|ai|robot)s?\b/i,
-      () => "Do computers worry you"],
-    [/\bbecause\b/i, () => "Is that the real reason"],
+      () => "Do computers worry you?"],
+    [/\bbecause\b/i, () => "Is that the real reason?"],
     [/\bsorry\b/i, () => "Please don't apologize"],
-    [/\bdream/i, () => "What does that dream suggest to you"],
+    [/\bdream/i, () => "What does that dream suggest to you?"],
     [/^\s*yes\b/i, () => "You seem quite positive"],
-    [/^\s*no\b/i, () => "Why not"],
+    [/^\s*no\b/i, () => "Why not?"],
   ];
 
   let reply = null;
@@ -299,10 +304,10 @@ function elizaReflect(input) {
 
   if (!reply) {
     const openers = [
-      "In what way",
-      "Can you elaborate on that",
+      "In what way?",
+      "Can you elaborate on that?",
       "Please go on",
-      "Why do you say that",
+      "Why do you say that?",
       "Tell me more"
     ];
     reply = openers[exchangeCount % openers.length];
@@ -372,56 +377,49 @@ function breakCharacter() {
     { t: "Three rounds. Feels pretty familiar by now, doesn't it —", d: 16 },
     { t: "you've talked to plenty of chatbots before.", d: 16 },
     { t: "", d: 0 },
-    { t: "Now picture meeting this in 1966. No internet, no ChatGPT,", d: 14 },
-    { t: "no frame of reference at all — just a screen answering back", d: 14 },
-    { t: "like it understood you.", d: 14 },
+    { t: "But picture meeting ELIZA in 1966. Before the internet.", d: 14 },
+    { t: "No ChatGPT. Just a screen answering back like it", d: 14 },
+    { t: "understood you.", d: 14 },
     { t: "", d: 0 },
     { t: "Joseph Weizenbaum built ELIZA at MIT in 1966 — a program for", d: 14 },
     { t: "holding a conversation in plain English — and wrote it a", d: 14 },
     { t: "script called DOCTOR, which made it imitate a Rogerian", d: 14 },
-    { t: "psychotherapist. That DOCTOR script is what you just talked to.", d: 14 },
+    { t: "psychotherapist. A version of that DOCTOR script is what", d: 14 },
+    { t: "you just talked to.", d: 14 },
     { t: "", d: 0 },
-    { t: "Here's the part worth sitting with. Every other impressive", d: 14 },
-    { t: "program at MIT needed you to already know something — some", d: 14 },
-    { t: "branch of mathematics, some specialty — before you could see", d: 14 },
-    { t: "why it mattered. DOCTOR needed nothing. In Weizenbaum's words,", d: 14 },
-    { t: "it \"could be appreciated on some level by anyone,\" and the", d: 14 },
-    { t: "visitor \"could actually participate in its operation.\"", d: 14 },
-    { t: "", d: 0 },
-    { t: "You just did. No manual, no training, no password — you typed a", d: 14 },
-    { t: "sentence in your own language and something answered. That is", d: 14 },
-    { t: "the whole reason it spread, and it should sound extremely", d: 14 },
-    { t: "familiar: it's why everyone you know suddenly has opinions", d: 14 },
-    { t: "about AI now, when almost none of them did ten years ago.", d: 14 },
-    { t: "The interface became language, and the gate came down.", d: 14 },
-    { t: "", d: 0 },
-    { t: "And that's exactly what alarmed him. His own secretary asked him", d: 14 },
+    { t: "What happened next alarmed him. His own secretary asked him", d: 14 },
     { t: "to leave the room so she could talk to it privately. Colleagues", d: 14 },
     { t: "— even psychiatrists — proposed automating therapy with it.", d: 14 },
     { t: "", d: 0 },
-    { t: "Weizenbaum thought that reaction was a kind of hysteria, and", d: 14 },
-    { t: "it's why he opened Computer Power and Human Reason (1976)", d: 14 },
-    { t: "with this story: not to boast about ELIZA, but to warn about", d: 14 },
-    { t: "how easily we hand our judgment to something that only looks", d: 14 },
-    { t: "like it understands us.", d: 14 },
+    { t: "That's why he set out to write Computer Power and Human", d: 14 },
+    { t: "Reason (1976) — a response to how people were treating a", d: 14 },
+    { t: "program he knew was only matching patterns.", d: 14 },
     { t: "", d: 0 },
-    { t: "This tutor works through that Introduction with you — not to", d: 14 },
-    { t: "summarize it for you, but to sharpen your reading and get you", d: 14 },
-    { t: "ready to speak about it in class.", d: 14 },
+    { t: "This tutor helps you get ready to discuss that Introduction", d: 14 },
+    { t: "in class. It won't summarize it for you.", d: 14 },
     { t: "", d: 0 },
     { t: "HOW THIS WORKS:", d: 18, cls: "heading" },
     { t: "You'll hit short checkpoints as you talk with the real tutor —", d: 20 },
     { t: "some easy warm-ups, some \"say it back in your own words,\" and", d: 20 },
     { t: "some \"refute this claim with evidence from the text.\"", d: 20 },
     { t: "", d: 0 },
-    { t: "BEFORE YOU GO:", d: 18, cls: "heading" },
-    { t: "1. Have the Introduction open in front of you, marked up. Underline", d: 20 },
-    { t: "   what strikes you, write in the margins, argue with him on the page.", d: 20 },
-    { t: "2. Bring a real question, or a real disagreement — from your notes.", d: 20 },
-    { t: "3. Talk like you would in class — short, direct, evidence-backed.", d: 20 },
-    { t: "   Point to a passage. \"On page 6, he says—\" beats \"I think maybe—\".", d: 20 },
+    { t: "A FEW SUGGESTIONS:", d: 18, cls: "heading" },
+    { t: "Have your marked-up text in front of you. Look back at the", d: 20 },
+    { t: "passages you underlined and what you wrote in the margins.", d: 20 },
+    { t: "", d: 0 },
+    { t: "Come with a question, or a point where you disagreed.", d: 20 },
+    { t: "", d: 0 },
+    { t: "Talk to Sage the way you'd talk with your classmates.", d: 20 },
   ];
-  typeSequence(afterEliza, quoteCheck);
+  typeSequence(afterEliza, () => {
+    appendLine("");
+    typeLine("SOME WAYS TO START:", 18, null, () => {
+      document.getElementById('starters').style.display = 'block';
+      const btn = document.getElementById('openSageBtn');
+      btn.style.display = 'inline-block';
+      btn.addEventListener('click', openSage, { once: true });
+    });
+  });
 }
 
 // --- Key-passage warm-up: nominate a quote, then defend it ---
@@ -445,39 +443,6 @@ function promptFreeText(placeholder, cb) {
   });
 }
 
-function quoteCheck() {
-  typeSequence([
-    { t: "", d: 0 },
-    { t: "Actually — let's warm that up right now.", d: 16 },
-    { t: "", d: 0 },
-    { t: "Find ONE sentence in the Introduction you'd nominate as", d: 16 },
-    { t: "essential — a line you'd read aloud in class. Type it here", d: 16 },
-    { t: "(or enough of it to know which one you mean):", d: 16 },
-  ], () => {
-    promptFreeText("type the sentence, or enough of it", (quote) => {
-      typeSequence([
-        { t: "Good. Now the harder half — in one line, why does it", d: 16 },
-        { t: "matter? Not what it says. What does the chapter lose", d: 16 },
-        { t: "if that sentence is cut?", d: 16 },
-      ], () => {
-        promptFreeText("one line — why it matters", (why) => {
-          typeSequence([
-            { t: "That's a claim you can raise your hand with. Write it in", d: 16 },
-            { t: "the margin next to the passage — and when Sage asks you", d: 16 },
-            { t: "for a key passage (it will), you'll already have one loaded.", d: 16 },
-            { t: "", d: 0 },
-            { t: "SOME WAYS TO START:", d: 18 },
-          ], () => {
-            document.getElementById('starters').style.display = 'block';
-            const btn = document.getElementById('openSageBtn');
-            btn.style.display = 'inline-block';
-            btn.addEventListener('click', openSage, { once: true });
-          });
-        });
-      });
-    });
-  });
-}
 
 // ================= Scene 4: hand off to Sage, auto-resume when they're back =================
 let sageWin = null;
