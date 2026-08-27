@@ -478,7 +478,7 @@ function elizaRound(cb) {
     const reply = elizaReflect(val).toUpperCase();
     typeLine(reply, 30, "prompt", () => {
       appendLine("");
-      cb(reply);
+      cb(reply, escaped);
     });
   });
 }
@@ -635,12 +635,14 @@ function resumeAfterSage() {
   ], () => {
     let r = 0;
     (function nextReturnRound() {
-      elizaRound((reply) => {
+      elizaRound((reply, said) => {
         r++;
-        // Clear before the last exchange so three rounds can't overflow —
-        // but carry ELIZA's question forward so round three has context.
+        // Clear before the last exchange so three rounds can't overflow — but
+        // carry the whole last exchange forward so round three keeps its context.
         if (r === 2) {
           log.innerHTML = '';
+          appendLine("YOU: " + said);
+          appendLine("");
           appendLine(reply, 'prompt');
           appendLine("");
         }
@@ -684,7 +686,7 @@ function breakCharacterAgain() {
       typeSequence([
         { t: "That's your raw material — not the finished line.", d: 16 },
         { t: "", d: 0 },
-        { t: "This screen can't tell whether it's sharp enough. Sage can.", d: 16 },
+        { t: "ELIZA can't tell whether it's sharp enough. Sage can.", d: 16 },
         { t: "Take it back and ask it to push you on that one sentence:", d: 16 },
         { t: "which passage, and what the chapter loses without it.", d: 16 },
       ], () => showSharpen(val));
@@ -754,10 +756,12 @@ function resumeAfterSharpen() {
   ], () => {
     let r = 0;
     (function nextRound() {
-      elizaRound((reply) => {
+      elizaRound((reply, said) => {
         r++;
         if (r === 2) {
           log.innerHTML = '';
+          appendLine("YOU: " + said);
+          appendLine("");
           appendLine(reply, 'prompt');
           appendLine("");
         }
