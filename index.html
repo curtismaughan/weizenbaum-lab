@@ -22,7 +22,7 @@
     text-shadow: 0 0 4px #33ff66, 0 0 10px rgba(51,255,102,0.4);
     font-size: 22px;
     line-height: 1.5;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .screen {
@@ -58,6 +58,8 @@
   .prompt { color: #7bffa0; }
   .heading { color: #7bffa0; }
   .dim { color: #1f8a3d; font-size: 16px; }
+  .morecue { color: #1f8a3d; font-size: 16px; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 0.45; } 50% { opacity: 1; } }
 
   #inputLine { display: none; align-items: center; }
   #inputLine .label { color: #7bffa0; margin-right: 8px; }
@@ -158,6 +160,12 @@
     <span class="label" style="color:#7bffa0; margin-right:8px;">&gt;</span>
     <input id="takeaway" class="term" type="text" autocomplete="off" placeholder="one sentence, spoken register" />
   </div>
+
+  <div id="sharpen" style="display:none; margin-top: 22px; border-top: 1px dashed #1f8a3d; padding-top: 16px;">
+    <div id="sharpenLine" style="color:#7bffa0; margin-bottom: 14px;"></div>
+    <button class="copy-btn" id="sharpenCopy" style="font-size:15px; padding:4px 12px;">COPY FOR SAGE</button>
+    <button class="term-btn" id="sharpenBack" style="display:inline-block; margin-top:0; margin-left:10px; vertical-align:middle;">BACK TO SAGE &raquo;</button>
+  </div>
  </div>
 </div>
 
@@ -173,24 +181,39 @@ const SAGE_TUTOR_URL = "https://sage.utexas.edu/tutor/a59e71fb-56e4-41d2-b65d-34
 const log = document.getElementById('log');
 const crt = document.getElementById('crt');
 
+// Nothing ever scrolls. Each beat fills one screen and waits for the reader,
+// so text animates in without the container jumping under it.
+
 function appendLine(text, cls) {
   const d = document.createElement('div');
   if (cls) d.classList.add(cls);
   d.innerHTML = text === "" ? "&nbsp;" : text;
   log.appendChild(d);
-  crt.scrollTop = crt.scrollHeight;
   return d;
 }
+
+// A keypress or click during typing finishes the current beat instantly.
+let skipRequested = false;
+function requestSkip() { skipRequested = true; }
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  requestSkip();
+});
+document.addEventListener('click', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+  requestSkip();
+});
 
 function typeLine(text, delay, cls, cb) {
   const d = appendLine("", cls);
   let i = 0;
-  if (text === "") { setTimeout(cb, 150); return; }
+  if (text === "") { setTimeout(cb, 120); return; }
   (function step() {
+    if (skipRequested) { d.textContent = text; setTimeout(cb, 0); return; }
     d.textContent = text.slice(0, i);
     i++;
-    if (i <= text.length) { crt.scrollTop = crt.scrollHeight; setTimeout(step, delay); }
-    else setTimeout(cb, 150);
+    if (i <= text.length) setTimeout(step, delay);
+    else setTimeout(cb, 120);
   })();
 }
 
@@ -200,6 +223,39 @@ function typeSequence(lines, onDone) {
     if (idx >= lines.length) { onDone(); return; }
     const { t, d, cls } = lines[idx++];
     typeLine(t, d, cls, next);
+  })();
+}
+
+// Type a beat, then hold until the reader advances. Clears for the next beat
+// so the screen never grows past the viewport.
+function showPage(lines, onDone, opts) {
+  opts = opts || {};
+  skipRequested = false;
+  if (!opts.keep) log.innerHTML = '';
+  typeSequence(lines, () => {
+    skipRequested = false;
+    if (opts.last) { onDone(); return; }
+    const hint = appendLine('', 'more');
+    hint.innerHTML = '&nbsp;<br><span class="morecue">[ press any key ]</span>';
+    const go = e => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON')) return;
+      document.removeEventListener('keydown', go);
+      document.removeEventListener('click', go);
+      onDone();
+    };
+    setTimeout(() => {
+      document.addEventListener('keydown', go);
+      document.addEventListener('click', go);
+    }, 250);
+  });
+}
+
+function showPages(pages, onDone) {
+  let i = 0;
+  (function next() {
+    if (i >= pages.length) { onDone(); return; }
+    const page = pages[i++];
+    showPage(page, next, { last: i === pages.length && false });
   })();
 }
 
@@ -411,15 +467,29 @@ function breakCharacter() {
     { t: "", d: 0 },
     { t: "Talk to Sage the way you'd talk with your classmates.", d: 20 },
   ];
-  typeSequence(afterEliza, () => {
-    appendLine("");
-    typeLine("SOME WAYS TO START:", 18, null, () => {
-      document.getElementById('starters').style.display = 'block';
-      const btn = document.getElementById('openSageBtn');
-      btn.style.display = 'inline-block';
-      btn.addEventListener('click', openSage, { once: true });
-    });
-  });
+
+  // Split the reveal into beats. Each fills one screen, then waits.
+  const beats = [
+    afterEliza.slice(0, 8),    // three rounds + 1966
+    afterEliza.slice(8, 18),   // Weizenbaum, DOCTOR, what happened next
+    afterEliza.slice(18, 25),  // why he wrote the book + what this tutor is
+    afterEliza.slice(25),      // how this works + suggestions
+  ];
+
+  let i = 0;
+  (function nextBeat() {
+    if (i >= beats.length) {
+      appendLine("");
+      typeLine("SOME WAYS TO START:", 18, null, () => {
+        document.getElementById('starters').style.display = 'block';
+        const btn = document.getElementById('openSageBtn');
+        btn.style.display = 'inline-block';
+        btn.addEventListener('click', openSage, { once: true });
+      });
+      return;
+    }
+    showPage(beats[i++], nextBeat);
+  })();
 }
 
 // --- Key-passage warm-up: nominate a quote, then defend it ---
@@ -499,14 +569,11 @@ function breakCharacterAgain() {
     { t: "", d: 0 },
     { t: "Okay — stepping out of ELIZA one more time.", d: 16 },
     { t: "", d: 0 },
-    { t: "Go back to your notes for a second. Anything you underlined or", d: 16 },
-    { t: "scribbled while reading — or anything that clicked just now in", d: 16 },
-    { t: "Sage — write it in the margin next to the passage it belongs to,", d: 16 },
-    { t: "in your own words. Marked-up pages are what you'll actually be", d: 16 },
-    { t: "able to speak from in class. A chat transcript isn't.", d: 16 },
+    { t: "Look back through your text. Which page did you mark up", d: 16 },
+    { t: "the most? That one's worth another minute.", d: 16 },
     { t: "", d: 0 },
-    { t: "Then: if you got called on in class right now, what's the one", d: 16 },
-    { t: "thing you'd say — and which passage would you point to?", d: 16 },
+    { t: "And if you got called on right now, what's the one thing", d: 16 },
+    { t: "you'd say — and which passage would you point to?", d: 16 },
   ], () => {
     const inputLine2 = document.getElementById('inputLine2');
     const takeaway = document.getElementById('takeaway');
@@ -525,14 +592,42 @@ function breakCharacterAgain() {
       appendLine("LOGGED: " + escaped, "prompt");
       appendLine("");
       typeSequence([
-        { t: "Good. Say it exactly like that if you get the chance.", d: 16 },
+        { t: "That's your raw material — not the finished line.", d: 16 },
         { t: "", d: 0 },
-        { t: "Now copy it into your notes, next to the passage it came from.", d: 14 },
-        { t: "This screen isn't saved anywhere — your marked-up reading is", d: 14 },
-        { t: "the only thing walking into class with you.", d: 14 },
-      ], () => {});
+        { t: "This screen can't tell whether it's sharp enough. Sage can.", d: 16 },
+        { t: "Take it back and ask it to push you on that one sentence:", d: 16 },
+        { t: "which passage, and what the chapter loses without it.", d: 16 },
+      ], () => showSharpen(val));
     });
   });
+}
+
+// Their line, copyable, plus a second handoff. The terminal doesn't judge —
+// it can't, and pretending to would be the exact thing this text is about.
+function showSharpen(line) {
+  const wrap = document.getElementById('sharpen');
+  const box = document.getElementById('sharpenLine');
+  const copy = document.getElementById('sharpenCopy');
+  const back = document.getElementById('sharpenBack');
+
+  box.textContent = line;
+  wrap.style.display = 'block';
+
+  copy.addEventListener('click', () => {
+    const text = 'Here\'s what I\'d say in class: "' + line +
+      '" — push me on it. Which passage should I point to, and what does the chapter lose without it?';
+    const done = () => {
+      copy.textContent = 'COPIED';
+      setTimeout(() => { copy.textContent = 'COPY FOR SAGE'; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  });
+
+  back.addEventListener('click', () => { window.open(SAGE_TUTOR_URL, '_blank'); });
 }
 
 // Copy-to-clipboard for the conversation starters.
