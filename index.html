@@ -479,7 +479,9 @@ function breakCharacter() {
   let i = 0;
   (function nextBeat() {
     if (i >= beats.length) {
-      appendLine("");
+      // Fresh screen for the handoff — starters plus the button need the room.
+      log.innerHTML = '';
+      skipRequested = false;
       typeLine("SOME WAYS TO START:", 18, null, () => {
         document.getElementById('starters').style.display = 'block';
         const btn = document.getElementById('openSageBtn');
@@ -551,7 +553,8 @@ function openSage() {
 
 function resumeAfterSage() {
   document.getElementById('waiting').style.display = 'none';
-  appendLine("");
+  log.innerHTML = '';
+  skipRequested = false;
   // ELIZA is who greets you back — not a narrator.
   typeSequence([
     { t: "> WELCOME BACK.", d: 30, cls: "prompt" },
@@ -564,6 +567,8 @@ function resumeAfterSage() {
 }
 
 function breakCharacterAgain() {
+  log.innerHTML = '';
+  skipRequested = false;
   typeSequence([
     { t: "...", d: 300 },
     { t: "", d: 0 },
