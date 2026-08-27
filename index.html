@@ -680,7 +680,10 @@ function breakCharacterAgain() {
       inputLine2.style.display = 'none';
 
       const escaped = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      appendLine("");
+      // Fresh screen — the sharpen block and its two buttons need the room,
+      // and nothing here scrolls.
+      log.innerHTML = '';
+      skipRequested = false;
       appendLine("LOGGED: " + escaped, "prompt");
       appendLine("");
       typeSequence([
