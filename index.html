@@ -478,7 +478,7 @@ function elizaRound(cb) {
     const reply = elizaReflect(val).toUpperCase();
     typeLine(reply, 30, "prompt", () => {
       appendLine("");
-      cb();
+      cb(reply);
     });
   });
 }
@@ -635,13 +635,14 @@ function resumeAfterSage() {
   ], () => {
     let r = 0;
     (function nextReturnRound() {
-      elizaRound(() => {
+      elizaRound((reply) => {
         r++;
-        // Clear before the last exchange so three rounds can't overflow.
+        // Clear before the last exchange so three rounds can't overflow —
+        // but carry ELIZA's question forward so round three has context.
         if (r === 2) {
-          const keep = log.lastElementChild;
           log.innerHTML = '';
-          if (keep) log.appendChild(keep);
+          appendLine(reply, 'prompt');
+          appendLine("");
         }
         if (r < 3) setTimeout(nextReturnRound, 400);
         else setTimeout(breakCharacterAgain, 600);
@@ -753,12 +754,12 @@ function resumeAfterSharpen() {
   ], () => {
     let r = 0;
     (function nextRound() {
-      elizaRound(() => {
+      elizaRound((reply) => {
         r++;
         if (r === 2) {
-          const keep = log.lastElementChild;
           log.innerHTML = '';
-          if (keep) log.appendChild(keep);
+          appendLine(reply, 'prompt');
+          appendLine("");
         }
         if (r < 3) setTimeout(nextRound, 400);
         else setTimeout(finalPush, 600);
@@ -810,15 +811,16 @@ function handOffQuestions() {
   typeSequence([
     { t: "Those are your answers. Hold onto them.", d: 16 },
     { t: "", d: 0 },
-    { t: "Now take the same two questions to Sage and make it argue", d: 16 },
-    { t: "both sides of each. See whether it moves you.", d: 16 },
+    { t: "Now take the same two questions to Sage — but don't let it", d: 16 },
+    { t: "answer for you. Make it walk you through, and push back", d: 16 },
+    { t: "when it goes easy on you.", d: 16 },
     { t: "", d: 0 },
     { t: "Either way the verdict stays yours. Bring it to class.", d: 16 },
   ], () => {
     const wrap = document.getElementById('final');
     const copy = document.getElementById('finalCopy');
     const back = document.getElementById('finalBack');
-    const q = "Would Weizenbaum approve of Sage? And would he approve of this course? Argue both sides of each, honestly, then let me decide.";
+    const q = "Would Weizenbaum approve of Sage? And would he approve of this course? Don't answer for me — walk me through it. Ask me what I think, push on my reasoning, and point me back to the passages.";
     wrap.style.display = 'block';
 
     copy.addEventListener('click', () => {
